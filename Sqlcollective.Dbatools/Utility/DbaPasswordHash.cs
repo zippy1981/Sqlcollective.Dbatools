@@ -15,11 +15,11 @@ namespace Sqlcollective.Dbatools.Utility
         /// <summary>Length in bytes of the salt.</summary>
         public const int SaltLength = 4;
         /// <summary>Length in bytes of a SHA1 hash</summary>
-        public const int Sha1Length = 40;
+        public const int Sha1Length = 20;
         /// <summary>Length in bytes of a SHA256 hash</summary>
         public const int Sha512Length = 64;
         /// <summary>Length in bytes of a complete SHA1 password hash</summary>
-        public const int Sha1PasswordHashLength = 46;
+        public const int Sha1PasswordHashLength = 26;
         /// <summary>Length in bytes of a complete SHA256 password hash</summary>
         public const int Sha512PasswordHashLength = 70;
 

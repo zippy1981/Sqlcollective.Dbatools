@@ -35,6 +35,7 @@
   <ItemGroup>
     <Compile Include="Utility\DbaPasswordHash.cs" />
     <Compile Include="Utility\DbaPasswordHashVersion.cs" />
+    <Compile Include="Utility\DbaToolsExtensionMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
