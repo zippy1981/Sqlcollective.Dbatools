@@ -56,7 +56,7 @@ namespace Sqlcollective.Dbatools.Tests
                 Assert.True(passwordHash.VerifyPassword(password.PlainText), $"Verifying password ${password} against hash failed.");
             }
         }
-        
+
         [Test]
         public void TestHashVerifyFail()
         {
@@ -67,11 +67,53 @@ namespace Sqlcollective.Dbatools.Tests
             Assert.AreNotEqual(hashBytes, generatedHash);
             Assert.False(passwordHash.VerifyPassword("Not the Password"));
         }
-        
-        /*
-         * TODO: Tests for these:
-         *     https://sqlcommunity.slack.com/archives/C1M2WEASG/p1496751699689835
-         *    https://sqlcommunity.slack.com/files/cl/F5P75QJ3V/login_zippy_password_zippy.txt
-         */
+
+        [Test]
+        public void TestIncorrectVersion()
+        {
+            var hashBytes = HexadecimalStringToByteArray_BestEffort("0300");
+            Assert.Throws<ArgumentOutOfRangeException>(
+                delegate { new DbaPasswordHash(hashBytes); },
+                "Incorrect password version of 3"
+            );
+        }
+
+        [Test]
+        public void TestGenerateHashIncorrectVersion()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(
+                delegate { DbaPasswordHash.GenerateHash("password", version: (DbaPasswordHashVersion)7); },
+                "Unsupported password version of 7"
+            );
+        }
+
+        [Test]
+        public void TestInCorrectPasswordLength()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(
+                delegate { new DbaPasswordHash(HexadecimalStringToByteArray_BestEffort("0200FFFFFFFFFF")); },
+                $"Password hash for a Sql Server 2012+ password must be {DbaPasswordHash.Sha1PasswordHashLength} bytes long"
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(
+                delegate { new DbaPasswordHash(HexadecimalStringToByteArray_BestEffort("0100FFFFFFFFFF")); },
+                $"Password hash for a Sql Server 2005 to 2008 password must be {DbaPasswordHash.Sha1PasswordHashLength} bytes long"
+            );
+        }
+
+        /// <summary>
+        /// We don't actually randomly generate a salt in the main test so do that here.
+        /// </summary>
+        [Test]
+        public void TestPassworWithRandomHash()
+        {
+            var password = "secretPassword";
+            var passwordHash = DbaPasswordHash.GenerateHash(password);
+            var passwordHash2000 = DbaPasswordHash.GenerateHash(password, version: DbaPasswordHashVersion.Sql2000);
+            Assert.AreNotEqual(passwordHash2000, passwordHash);
+            var hashObj = new DbaPasswordHash(passwordHash);
+            var hashObj2000 = new DbaPasswordHash(passwordHash2000);
+            Assert.True(hashObj.VerifyPassword(password));
+            Assert.True(hashObj2000.VerifyPassword(password));
+        }
     }
 }

@@ -57,9 +57,8 @@ namespace Sqlcollective.Dbatools.Utility
                     //TODO: deal with SQL Server 2000 case insensitive format
                     if (rawHash.Length != Sha1PasswordHashLength)
                     {
-                        var msg = string.Format
-                            ("Password hash for a Sql Server 2005 to 2008 password must be {0} bytes long", 
-                             Sha1PasswordHashLength);
+                        var msg =
+                            $"Password hash for a Sql Server 2005 to 2008 password must be {Sha1PasswordHashLength} bytes long";
                         throw new ArgumentOutOfRangeException
                             (nameof(rawHash), msg);
                     }
@@ -77,6 +76,8 @@ namespace Sqlcollective.Dbatools.Utility
                     }
                     Array.Copy(rawHash, 6, this.Hash, 0, Sha512Length);
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException($"Incorrect password version of {HashVersion}.", nameof(rawHash));
             }
             this.Salt = BitConverter.ToUInt32(rawHash, 2);
         }
@@ -107,7 +108,7 @@ namespace Sqlcollective.Dbatools.Utility
                     hash = Sha512.ComputeHash(passwordBytes);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(version), "Unsupported password version");
+                    throw new ArgumentOutOfRangeException(nameof(version), $"Unsupported password version of {(uint) version}");
             }
             var completeHash = version.GetBytes().Concat(saltBytes).Concat(hash).ToArray();
             Debug.WriteLine($"completed hash: {BitConverter.ToString(completeHash)}");
