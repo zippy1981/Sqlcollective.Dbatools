@@ -36,7 +36,10 @@ public static class DbaToolsExtensionMethods
     /// <returns><c>True</c> if the arrays are equal in size and contents. <c>False</c> otherwise.</returns>
     public static bool EqualsArray<T>(this IList<T> self, IList<T> comparison)
     {
-        if (self.Count != comparison.Count) return false;
+        if (self.Count != comparison.Count)
+        {
+            return false;
+        }
         return !self.Where((t, i) => !t.Equals(comparison[i])).Any();
     }
 }
