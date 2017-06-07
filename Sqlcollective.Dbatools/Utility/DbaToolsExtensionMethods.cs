@@ -23,7 +23,7 @@ public static class DbaToolsExtensionMethods
             case DbaPasswordHashVersion.Sql2012:
                 return new byte[] { 2, 0 };
             default:
-                throw new ArgumentOutOfRangeException(nameof(version), version, null);
+                throw new ArgumentOutOfRangeException(nameof(version), version, "Cannot call GetBytes on an invalid password has version.");
         }
     }
 
