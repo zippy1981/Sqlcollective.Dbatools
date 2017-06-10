@@ -24,7 +24,7 @@ namespace Sqlcollective.Dbatools.Tests
         private IList<PasswordData> Passwords = new List<PasswordData>
         {
             new PasswordData("secretP@ssword", "020044A236AE0264C666A1403706613D91C40BC8264FCE7FB713BDF8770AD951503C95999AF3DBB53FD04A1785B86357EF09EA1E3403F6921D32249AF2C4E9DCB8F09BBC476C"),
-            new PasswordData("zippy", "0100F440586023344450835A2B693974B79D93D9E08D9D451ADA"),//"1C74C460DA4C5371BC7970AF422C52F88784D002"),
+            new PasswordData("zippy", "0100F440586023344450835A2B693974B79D93D9E08D9D451ADA1C74C460DA4C5371BC7970AF422C52F88784D002"),
             new PasswordData("ZIPPY", "0100BA51E20BFEC81D855CE4E97F102067F24B29943D92DAC328"),//"FEC81D855CE4E97F102067F24B29943D92DAC328"),
         };
         
@@ -51,9 +51,9 @@ namespace Sqlcollective.Dbatools.Tests
             {
                 var hashBytes = HexadecimalStringToByteArray_BestEffort(password.Hash);
                 var passwordHash = new DbaPasswordHash(hashBytes);
-                var generatedHash = DbaPasswordHash.GenerateHash(password.PlainText, passwordHash.Salt, passwordHash.HashVersion);
+                var generatedHash = DbaPasswordHash.GenerateHash(password.PlainText, passwordHash.Salt, passwordHash.HashVersion, passwordHash.UpperCaseHash != null);
                 Assert.AreEqual(hashBytes, generatedHash, $"Password hash for {password.PlainText} is incorrect.");
-                Assert.True(passwordHash.VerifyPassword(password.PlainText), $"Verifying password ${password} against hash failed.");
+                Assert.True(passwordHash.VerifyPassword(password.PlainText), $"Verifying password {password.PlainText} against hash failed.");
             }
         }
 
