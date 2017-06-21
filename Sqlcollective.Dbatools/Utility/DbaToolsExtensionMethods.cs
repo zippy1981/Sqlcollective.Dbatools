@@ -1,45 +1,47 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Sqlcollective.Dbatools.Utility;
 
-/// <summary>
-/// Extension methods used by other classes.
-/// </summary>
-public static class DbaToolsExtensionMethods
+namespace Sqlcollective.Dbatools.Utility
 {
     /// <summary>
-    /// Gets a little endian byte array representation of the version code.
+    /// Extension methods used by other classes.
     /// </summary>
-    /// <returns>either <c>0x0100</c> for SQL 2000-2008 or <c>0x0200</c> for SQL 2012-SQL 2017</returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    /// <remarks>Originally written because I didn't take endianness into account</remarks>
-    public static byte[] GetBytes(this DbaPasswordHashVersion version)
+    public static class DbaToolsExtensionMethods
     {
-        switch (version)
+        /// <summary>
+        /// Gets a little endian byte array representation of the version code.
+        /// </summary>
+        /// <returns>either <c>0x0100</c> for SQL 2000-2008 or <c>0x0200</c> for SQL 2012-SQL 2017</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <remarks>Originally written because I didn't take endianness into account</remarks>
+        public static byte[] GetBytes(this DbaPasswordHashVersion version)
         {
-            case DbaPasswordHashVersion.Sql2000:
-                return new byte[] { 1, 0 };
-            case DbaPasswordHashVersion.Sql2012:
-                return new byte[] { 2, 0 };
-            default:
-                throw new ArgumentOutOfRangeException(nameof(version), version, "Cannot call GetBytes on an invalid password has version.");
+            switch (version)
+            {
+                case DbaPasswordHashVersion.Sql2000:
+                    return new byte[] { 1, 0 };
+                case DbaPasswordHashVersion.Sql2012:
+                    return new byte[] { 2, 0 };
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(version), version, "Cannot call GetBytes on an invalid password has version.");
+            }
         }
-    }
 
-    /// <summary>
-    /// Tests if an array equals another array.
-    /// </summary>
-    /// <param name="self">This array.</param>
-    /// <param name="comparison">The array we are comparing to.</param>
-    /// <typeparam name="T">Type of array contents.</typeparam>
-    /// <returns><c>True</c> if the arrays are equal in size and contents. <c>False</c> otherwise.</returns>
-    public static bool EqualsArray<T>(this IList<T> self, IList<T> comparison)
-    {
-        if (self.Count != comparison.Count)
+        /// <summary>
+        /// Tests if an array equals another array.
+        /// </summary>
+        /// <param name="self">This array.</param>
+        /// <param name="comparison">The array we are comparing to.</param>
+        /// <typeparam name="T">Type of array contents.</typeparam>
+        /// <returns><c>True</c> if the arrays are equal in size and contents. <c>False</c> otherwise.</returns>
+        public static bool EqualsArray<T>(this IList<T> self, IList<T> comparison)
         {
-            return false;
+            if (self.Count != comparison.Count)
+            {
+                return false;
+            }
+            return !self.Where((t, i) => !t.Equals(comparison[i])).Any();
         }
-        return !self.Where((t, i) => !t.Equals(comparison[i])).Any();
     }
 }

@@ -51,7 +51,7 @@ namespace Sqlcollective.Dbatools.Tests
             {
                 var hashBytes = HexadecimalStringToByteArray_BestEffort(password.Hash);
                 var passwordHash = new DbaPasswordHash(hashBytes);
-                var generatedHash = DbaPasswordHash.GenerateHash(password.PlainText, passwordHash.Salt, passwordHash.HashVersion, passwordHash.UpperCaseHash != null);
+                var generatedHash = DbaPasswordHash.GenerateHash(password.PlainText, passwordHash.Salt, passwordHash.HashVersion, passwordHash.RawHashUpperCase != null);
                 Assert.AreEqual(hashBytes, generatedHash, $"Password hash for {password.PlainText} is incorrect.");
                 Assert.True(passwordHash.VerifyPassword(password.PlainText), $"Verifying password {password.PlainText} against hash failed.");
             }
@@ -114,6 +114,35 @@ namespace Sqlcollective.Dbatools.Tests
             var hashObj2000 = new DbaPasswordHash(passwordHash2000);
             Assert.True(hashObj.VerifyPassword(password));
             Assert.True(hashObj2000.VerifyPassword(password));
+        }
+
+        [Test]
+        public void TestCaseInsensitivePasswordPasswordHash()
+        {
+            var password = "s3cretP@ssword";
+            var hash = DbaPasswordHash.GenerateHash(password, version: DbaPasswordHashVersion.Sql2000, caseInsensitive: true);
+            Assert.AreEqual(DbaPasswordHash.Sha1CaseInsensitivePasswordHashLength, hash.Length);
+            var hashObj = new DbaPasswordHash(hash);
+            Assert.True(hashObj.VerifyPassword(password));
+            Assert.True(hashObj.VerifyPassword(password.ToLower()));
+            Assert.True(hashObj.VerifyPassword(password.ToLowerInvariant()));
+            Assert.True(hashObj.VerifyPassword(password.ToUpper()));
+            Assert.True(hashObj.VerifyPassword(password.ToUpperInvariant()));
+        }
+
+        /// <summary>
+        /// Assert that we can't create a SQL Server 2012+ style password hash that is case insensitive.
+        /// </summary>
+        [Test]
+        public void TestCaseInsensitiveV2PasswordException()
+        {
+            var password = "secretPassword";
+            Assert.Throws<ArgumentException>(
+                delegate { DbaPasswordHash.GenerateHash(password, version: DbaPasswordHashVersion.Sql2012, caseInsensitive: true); },
+                "Only Sql Server 2000 passwords can be case insensitive."
+            );
+            
+
         }
     }
 }

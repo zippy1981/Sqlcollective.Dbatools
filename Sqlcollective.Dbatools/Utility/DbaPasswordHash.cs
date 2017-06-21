@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -7,7 +6,7 @@ using System.Text;
 namespace Sqlcollective.Dbatools.Utility
 {   
     /// <summary>
-    /// Information about a sql server password hash
+    /// Information about a sql server password hash.
     /// </summary>
     /// <seealso cref="http://sqlity.net/en/2460/sql-password-hash/"/>
     public sealed class DbaPasswordHash {
@@ -33,17 +32,27 @@ namespace Sqlcollective.Dbatools.Utility
         private static readonly SHA512 Sha512;
         private static readonly RNGCryptoServiceProvider RngCryptoServiceProvider;
         
+        /// <summary>
+        /// What version of the password it is.
+        /// </summary>
         public DbaPasswordHashVersion HashVersion { get; }
 
         public uint Salt { get; }
     
+        /// <summary>
+        /// Just the encrypted hash without the version or salt.
+        /// </summary>
         public byte[] Hash { get; }
-    
-        public byte[] UpperCaseHash { get; }
         
-        public byte[] RawHash { get;  }
-        
-        public byte[] RawHashUpperCase { get;  }
+        /// <summary>
+        /// The raw hash.
+        /// </summary>
+        public byte[] RawHash { get; }
+
+        /// <summary>
+        /// The raw hash for the upper case version of the password.
+        /// </summary>
+        public byte[] RawHashUpperCase { get; }
 
         /// <remarks>TODO: dynamically use an unmanaged library if its faster.</remarks>
         /// <seealso cref="https://msdn.microsoft.com/en-us/library/system.security.cryptography.sha1managed(v=vs.110).aspx"/>
@@ -63,10 +72,8 @@ namespace Sqlcollective.Dbatools.Utility
                     //TODO: deal with SQL Server 2000 case insensitive format
                     if (rawHash.Length != Sha1PasswordHashLength && rawHash.Length != Sha1CaseInsensitivePasswordHashLength)
                     {
-                        var msg =
-                            $"Password hash for a Sql Server 2005 to 2008 password must be {Sha1PasswordHashLength}  or {Sha1CaseInsensitivePasswordHashLength}  bytes long";
-                        throw new ArgumentOutOfRangeException
-                            (nameof(rawHash), msg);
+                        var msg = $"Password hash for a Sql Server 2005 to 2008 password must be {Sha1PasswordHashLength}  or {Sha1CaseInsensitivePasswordHashLength}  bytes long";
+                        throw new ArgumentOutOfRangeException(nameof(rawHash), msg);
                     }
                     RawHash = new byte[Sha1PasswordHashLength];
                     Array.Copy(rawHash, 0, RawHash, 0, Sha1PasswordHashLength);
@@ -74,8 +81,9 @@ namespace Sqlcollective.Dbatools.Utility
                     Array.Copy(rawHash, HashOffset, Hash, 0, Sha1Length);
                     if (rawHash.Length == Sha1CaseInsensitivePasswordHashLength)
                     {
-                        UpperCaseHash = new byte[Sha1Length];
-                        Array.Copy(rawHash, Sha1PasswordHashLength, UpperCaseHash, 0, Sha1Length);
+                        RawHashUpperCase = new byte[Sha1PasswordHashLength];
+                        Array.Copy(rawHash, 0, RawHashUpperCase, 0, HashOffset);
+                        Array.Copy(rawHash, Sha1PasswordHashLength, RawHashUpperCase, HashOffset, Sha1Length);
                     }
                     break;
                 case DbaPasswordHashVersion.Sql2012:
@@ -83,15 +91,13 @@ namespace Sqlcollective.Dbatools.Utility
                     Hash = new byte[Sha512Length];
                     if (rawHash.Length != Sha512PasswordHashLength)
                     {
-                        var msg =
-                            $"Password hash for a Sql Server 2012+ password must be {Sha512PasswordHashLength} bytes long";
-                        throw new ArgumentOutOfRangeException
-                            (nameof(rawHash), msg);
+                        var msg = $"Password hash for a Sql Server 2012+ password must be {Sha512PasswordHashLength} bytes long";
+                        throw new ArgumentOutOfRangeException (nameof(rawHash), msg);
                     }
                     Array.Copy(rawHash, HashOffset, Hash, 0, Sha512Length);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException($"Incorrect password version of {HashVersion}.", nameof(rawHash));
+                    throw new ArgumentOutOfRangeException(nameof(rawHash), $"Incorrect password version of {HashVersion}.");
             }
             Salt = BitConverter.ToUInt32(rawHash, SaltOffset);
         }
@@ -105,14 +111,12 @@ namespace Sqlcollective.Dbatools.Utility
             if (salt == null)
             {
                 RngCryptoServiceProvider.GetNonZeroBytes(saltBytes);
-                salt = BitConverter.ToUInt32(saltBytes, 0);
             }
             else
             {
                 saltBytes = BitConverter.GetBytes(salt.Value);
             }
             var passwordBytes = Encoding.Unicode.GetBytes(password).Concat(saltBytes).ToArray();
-            Debug.WriteLine($"password bytes with salt: {BitConverter.ToString(passwordBytes)}");
             byte[] hash;
             switch (version)
             {
@@ -121,7 +125,6 @@ namespace Sqlcollective.Dbatools.Utility
                     if (caseInsensitive)
                     {
                         var upperCasePasswordBytes = Encoding.Unicode.GetBytes(password.ToUpper()).Concat(saltBytes).ToArray();
-                        Debug.WriteLine($"uppercase password bytes with salt: {BitConverter.ToString(upperCasePasswordBytes)}");
                         hash = hash.Concat(Sha1.ComputeHash(upperCasePasswordBytes)).ToArray();
                     }
                     break;
@@ -135,15 +138,19 @@ namespace Sqlcollective.Dbatools.Utility
                 default:
                     throw new ArgumentOutOfRangeException(nameof(version), $"Unsupported password version of {(uint) version}");
             }
-            var completeHash = version.GetBytes().Concat(saltBytes).Concat(hash).ToArray();
-            Debug.WriteLine($"completed hash: {BitConverter.ToString(completeHash)}");
-            return completeHash;
+            return version.GetBytes().Concat(saltBytes).Concat(hash).ToArray();
         }
 
+        /// <summary>
+        /// Verifies that the plaintext password passed matches the hash.
+        /// </summary>
+        /// <param name="password">The plaintext password.</param>
+        /// <returns><c>true</c> if the password matches, <c>false</c> otherwise.</returns>
         public bool VerifyPassword(string password)
         {
             var generated = GenerateHash(password, Salt, HashVersion);
-            return generated.EqualsArray(RawHash);
+            var generatedUpper = GenerateHash(password.ToUpperInvariant(), Salt, HashVersion);
+            return generated.EqualsArray(RawHash) || generatedUpper.EqualsArray(RawHashUpperCase ?? new byte[] {});
         }
     }
 }
